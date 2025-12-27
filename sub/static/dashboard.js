@@ -5,6 +5,8 @@ let charts = {};
 let selectedDevice = '';
 let selectedTimeRange = 24;
 let refreshTimer = null;
+let lastSeenTimer = null;
+let deviceStatusCache = {}; // Cache device status for client-side updates
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,8 +22,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial load
     refreshAllData();
     
-    // Auto-refresh
+    // Auto-refresh (only data, not rendering)
     startAutoRefresh();
+    
+    // Start client-side last seen timer
+    startLastSeenTimer();
 });
 
 // Auto-refresh timer
@@ -29,7 +34,44 @@ function startAutoRefresh() {
     if (refreshTimer) {
         clearInterval(refreshTimer);
     }
-    refreshTimer = setInterval(refreshAllData, REFRESH_INTERVAL);
+    refreshTimer = setInterval(() => {
+        // Only refresh data, not full re-render
+        updateDataInBackground();
+    }, REFRESH_INTERVAL);
+}
+
+// Client-side last seen timer
+function startLastSeenTimer() {
+    if (lastSeenTimer) {
+        clearInterval(lastSeenTimer);
+    }
+    lastSeenTimer = setInterval(updateLastSeenDisplay, 1000); // Update every second
+}
+
+// Update last seen display client-side
+function updateLastSeenDisplay() {
+    const now = Math.floor(Date.now() / 1000);
+    Object.keys(deviceStatusCache).forEach(deviceId => {
+        const device = deviceStatusCache[deviceId];
+        const secondsAgo = now - device.last_seen;
+        const element = document.querySelector(`[data-device-id="${deviceId}"] .last-seen-text`);
+        if (element) {
+            element.textContent = formatTimeSince(secondsAgo);
+        }
+    });
+}
+
+// Background data update without re-rendering everything
+async function updateDataInBackground() {
+    console.log('Updating data in background...');
+    
+    // Update health and stats silently
+    await Promise.all([
+        loadHealthStatus(),
+        updateDeviceStatusData(),
+        updateLatestDataTable(),
+        updateChartsData()
+    ]);
 }
 
 // Handle device filter change
@@ -44,7 +86,7 @@ function handleTimeRangeChange(e) {
     loadHistoricalData();
 }
 
-// Refresh all data
+// Refresh all data (initial load and manual refresh)
 async function refreshAllData() {
     console.log('Refreshing all data...');
     await Promise.all([
@@ -54,6 +96,68 @@ async function refreshAllData() {
         loadHistoricalData(),
         loadStatistics()
     ]);
+}
+
+// Update device status data without full re-render
+async function updateDeviceStatusData() {
+    try {
+        const response = await fetch('/api/devices/status');
+        const data = await response.json();
+        
+        // Update cache
+        deviceStatusCache = {};
+        data.devices.forEach(device => {
+            deviceStatusCache[device.device_id] = device;
+        });
+        
+        // Only update if structure changed (devices added/removed)
+        const currentCards = document.querySelectorAll('.device-card');
+        if (currentCards.length !== data.devices.length) {
+            // Full re-render needed
+            await loadDeviceStatus();
+        } else {
+            // Just update existing card data
+            data.devices.forEach(device => {
+                updateDeviceCard(device);
+            });
+        }
+    } catch (error) {
+        console.error('Error updating device status:', error);
+    }
+}
+
+// Update individual device card without re-rendering
+function updateDeviceCard(device) {
+    const card = document.querySelector(`[data-device-id="${device.device_id}"]`);
+    if (!card) return;
+    
+    // Update status class
+    card.className = `device-card ${device.status}`;
+    
+    // Update status badge
+    const badge = card.querySelector('.status-badge');
+    if (badge) {
+        badge.className = `status-badge ${device.status}`;
+        badge.textContent = device.status;
+    }
+    
+    // Update message count
+    const msgCount = card.querySelector('.message-count');
+    if (msgCount) {
+        msgCount.textContent = device.message_count;
+    }
+    
+    // Update firmware
+    const firmware = card.querySelector('.firmware-version');
+    if (firmware) {
+        firmware.textContent = device.firmware_version || 'N/A';
+    }
+    
+    // Update RSSI
+    const rssi = card.querySelector('.rssi-value');
+    if (rssi) {
+        rssi.textContent = device.rssi || 'N/A';
+    }
 }
 
 // Load health status
@@ -79,7 +183,7 @@ async function loadHealthStatus() {
     }
 }
 
-// Load device status
+// Load device status (full render)
 async function loadDeviceStatus() {
     try {
         const response = await fetch('/api/devices/status');
@@ -92,6 +196,12 @@ async function loadDeviceStatus() {
             devicesGrid.innerHTML = '<div class="empty-state"><p>No devices found</p><small>Waiting for ESP32 to send data...</small></div>';
             return;
         }
+        
+        // Update cache
+        deviceStatusCache = {};
+        data.devices.forEach(device => {
+            deviceStatusCache[device.device_id] = device;
+        });
         
         // Update device filter dropdown
         const currentSelection = deviceFilter.value;
@@ -106,21 +216,21 @@ async function loadDeviceStatus() {
             deviceFilter.appendChild(option);
         });
         
-        // Render device cards
+        // Render device cards with data attributes for updates
         devicesGrid.innerHTML = data.devices.map(device => {
             const lastSeenText = formatTimeSince(device.last_seen_ago);
             
             return `
-                <div class="device-card ${device.status}">
+                <div class="device-card ${device.status}" data-device-id="${device.device_id}">
                     <div class="device-header">
                         <span class="device-id">${device.device_id}</span>
                         <span class="status-badge ${device.status}">${device.status}</span>
                     </div>
                     <div class="device-info">
-                        <div><strong>Last Seen:</strong> ${lastSeenText}</div>
-                        <div><strong>Messages:</strong> ${device.message_count} (last 5 min)</div>
-                        <div><strong>Firmware:</strong> ${device.firmware_version || 'N/A'}</div>
-                        <div><strong>RSSI:</strong> ${device.rssi || 'N/A'} dBm</div>
+                        <div><strong>Last Seen:</strong> <span class="last-seen-text">${lastSeenText}</span></div>
+                        <div><strong>Messages:</strong> <span class="message-count">${device.message_count}</span> (last 5 min)</div>
+                        <div><strong>Firmware:</strong> <span class="firmware-version">${device.firmware_version || 'N/A'}</span></div>
+                        <div><strong>RSSI:</strong> <span class="rssi-value">${device.rssi || 'N/A'}</span> dBm</div>
                     </div>
                 </div>
             `;
@@ -131,7 +241,7 @@ async function loadDeviceStatus() {
     }
 }
 
-// Load latest data
+// Load latest data (full render)
 async function loadLatestData() {
     try {
         const response = await fetch('/api/data/latest?limit=20');
@@ -158,9 +268,9 @@ async function loadLatestData() {
                             <th>RSSI (dBm)</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="latest-data-tbody">
                         ${data.data.map(row => `
-                            <tr>
+                            <tr data-timestamp="${row.timestamp_server}">
                                 <td>${row.device_id}</td>
                                 <td>${formatTimestamp(row.timestamp_server)}</td>
                                 <td>${formatValue(row.dht22_temperature_c, 1)}</td>
@@ -182,7 +292,56 @@ async function loadLatestData() {
     }
 }
 
-// Load historical data and render charts
+// Update latest data table (only prepend new rows)
+async function updateLatestDataTable() {
+    try {
+        const tbody = document.getElementById('latest-data-tbody');
+        if (!tbody) {
+            // Table doesn't exist yet, do full load
+            await loadLatestData();
+            return;
+        }
+        
+        // Get the most recent timestamp in the table
+        const firstRow = tbody.querySelector('tr');
+        const latestTimestamp = firstRow ? parseInt(firstRow.dataset.timestamp) : 0;
+        
+        const response = await fetch('/api/data/latest?limit=5');
+        const data = await response.json();
+        
+        // Filter only new data
+        const newData = data.data.filter(row => row.timestamp_server > latestTimestamp);
+        
+        if (newData.length > 0) {
+            // Prepend new rows
+            const newRows = newData.map(row => `
+                <tr data-timestamp="${row.timestamp_server}">
+                    <td>${row.device_id}</td>
+                    <td>${formatTimestamp(row.timestamp_server)}</td>
+                    <td>${formatValue(row.dht22_temperature_c, 1)}</td>
+                    <td>${formatValue(row.dht22_humidity_percent, 1)}</td>
+                    <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
+                    <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
+                    <td>${formatValue(row.rssi, 0)}</td>
+                </tr>
+            `).join('');
+            
+            tbody.insertAdjacentHTML('afterbegin', newRows);
+            
+            // Keep only last 20 rows
+            const allRows = tbody.querySelectorAll('tr');
+            if (allRows.length > 20) {
+                for (let i = 20; i < allRows.length; i++) {
+                    allRows[i].remove();
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error updating latest data:', error);
+    }
+}
+
+// Load historical data and render charts (full render)
 async function loadHistoricalData() {
     try {
         const params = new URLSearchParams({
@@ -243,6 +402,90 @@ async function loadHistoricalData() {
     } catch (error) {
         console.error('Error loading historical data:', error);
     }
+}
+
+// Update charts data incrementally
+async function updateChartsData() {
+    try {
+        // Get latest data points
+        const params = new URLSearchParams({
+            hours: 1, // Just get last hour
+            limit: 100
+        });
+        
+        if (selectedDevice) {
+            params.append('device_id', selectedDevice);
+        }
+        
+        const response = await fetch(`/api/data/history?${params}`);
+        const data = await response.json();
+        
+        if (data.data.length === 0) return;
+        
+        // Group by device
+        const deviceData = {};
+        data.data.forEach(row => {
+            if (!deviceData[row.device_id]) {
+                deviceData[row.device_id] = [];
+            }
+            deviceData[row.device_id].push(row);
+        });
+        
+        // Update each chart
+        Object.keys(charts).forEach(chartId => {
+            const chart = charts[chartId];
+            if (!chart) return;
+            
+            const field = getFieldForChart(chartId);
+            
+            // Update each dataset
+            chart.data.datasets.forEach(dataset => {
+                const deviceId = dataset.label;
+                if (deviceData[deviceId]) {
+                    const newRows = deviceData[deviceId];
+                    
+                    // Get existing timestamps
+                    const existingTimestamps = new Set(dataset.data.map(d => d.x));
+                    
+                    // Add only new data points
+                    newRows.forEach(row => {
+                        const timestamp = row.timestamp_server * 1000;
+                        if (!existingTimestamps.has(timestamp) && row[field] !== null) {
+                            dataset.data.push({
+                                x: timestamp,
+                                y: row[field]
+                            });
+                        }
+                    });
+                    
+                    // Sort by timestamp
+                    dataset.data.sort((a, b) => a.x - b.x);
+                    
+                    // Keep only data within time range
+                    const cutoffTime = Date.now() - (selectedTimeRange * 3600 * 1000);
+                    dataset.data = dataset.data.filter(d => d.x > cutoffTime);
+                }
+            });
+            
+            // Update chart without animation
+            chart.update('none');
+        });
+        
+    } catch (error) {
+        console.error('Error updating charts data:', error);
+    }
+}
+
+// Helper function to get field name from chart ID
+function getFieldForChart(chartId) {
+    const fieldMap = {
+        'temp-chart-dht22': 'dht22_temperature_c',
+        'temp-chart-bmp280': 'bmp280_temperature_c',
+        'humidity-chart': 'dht22_humidity_percent',
+        'pressure-chart': 'bmp280_pressure_pa',
+        'rssi-chart': 'rssi'
+    };
+    return fieldMap[chartId];
 }
 
 // Render or update a chart
