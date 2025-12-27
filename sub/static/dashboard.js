@@ -1,5 +1,6 @@
 // Configuration
 const REFRESH_INTERVAL = 10000; // 10 seconds
+const MADRID_TZ = 'Europe/Madrid';
 let charts = {};
 let selectedDevice = '';
 let selectedTimeRange = 24;
@@ -13,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('device-filter').addEventListener('change', handleDeviceFilterChange);
     document.getElementById('time-range').addEventListener('change', handleTimeRangeChange);
     document.getElementById('refresh-btn').addEventListener('click', refreshAllData);
+    document.getElementById('query-preset').addEventListener('change', handleQueryPresetChange);
+    document.getElementById('query-run-btn').addEventListener('click', runQuery);
     
     // Initial load
     refreshAllData();
@@ -256,7 +259,9 @@ function renderChart(chartId, title, datasets, field) {
         borderColor: ds.color,
         backgroundColor: ds.color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
         tension: 0.4,
-        fill: true
+        fill: true,
+        pointRadius: 2,
+        pointHoverRadius: 4
     }));
     
     const config = {
@@ -274,13 +279,35 @@ function renderChart(chartId, title, datasets, field) {
             plugins: {
                 legend: {
                     display: true,
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0',
+                        font: {
+                            family: 'Courier New, monospace',
+                            size: 11
+                        }
+                    }
                 },
                 tooltip: {
+                    backgroundColor: 'rgba(10, 14, 39, 0.9)',
+                    titleColor: '#00ff41',
+                    bodyColor: '#e0e0e0',
+                    borderColor: '#00ff41',
+                    borderWidth: 1,
                     callbacks: {
                         title: (items) => {
                             if (items.length > 0) {
-                                return new Date(items[0].parsed.x).toLocaleString();
+                                const date = new Date(items[0].parsed.x);
+                                return date.toLocaleString('es-ES', {
+                                    timeZone: MADRID_TZ,
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                });
                             }
                             return '';
                         }
@@ -294,19 +321,43 @@ function renderChart(chartId, title, datasets, field) {
                         unit: selectedTimeRange <= 6 ? 'minute' : selectedTimeRange <= 48 ? 'hour' : 'day',
                         displayFormats: {
                             minute: 'HH:mm',
-                            hour: 'MMM DD HH:mm',
-                            day: 'MMM DD'
+                            hour: 'dd/MM HH:mm',
+                            day: 'dd/MM'
+                        },
+                        tooltipFormat: 'dd/MM/yyyy HH:mm:ss'
+                    },
+                    adapters: {
+                        date: {
+                            zone: MADRID_TZ
                         }
                     },
                     title: {
-                        display: true,
-                        text: 'Time'
+                        display: false
+                    },
+                    ticks: {
+                        color: '#8892b0',
+                        font: {
+                            family: 'Courier New, monospace',
+                            size: 10
+                        }
+                    },
+                    grid: {
+                        color: '#1e2a4a'
                     }
                 },
                 y: {
                     title: {
-                        display: true,
-                        text: title
+                        display: false
+                    },
+                    ticks: {
+                        color: '#8892b0',
+                        font: {
+                            family: 'Courier New, monospace',
+                            size: 10
+                        }
+                    },
+                    grid: {
+                        color: '#1e2a4a'
                     }
                 }
             }
@@ -360,7 +411,16 @@ async function loadStatistics() {
 function formatTimestamp(timestamp) {
     if (!timestamp) return 'N/A';
     const date = new Date(timestamp * 1000);
-    return date.toLocaleString();
+    return date.toLocaleString('es-ES', { 
+        timeZone: MADRID_TZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    }).replace(/(\d+)\/(\d+)\/(\d+),\s(\d+:\d+:\d+)/, '$3-$2-$1T$4');
 }
 
 function formatTimeSince(seconds) {
@@ -373,4 +433,63 @@ function formatTimeSince(seconds) {
 function formatValue(value, decimals = 2) {
     if (value === null || value === undefined) return 'N/A';
     return Number(value).toFixed(decimals);
+}
+
+// Query Section Functions
+function handleQueryPresetChange(e) {
+    document.getElementById('query-input').value = e.target.value;
+}
+
+async function runQuery() {
+    const query = document.getElementById('query-input').value.trim();
+    if (!query) {
+        alert('Please enter a SQL query');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/query', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ query })
+        });
+        
+        const data = await response.json();
+        const resultsDiv = document.getElementById('query-results');
+        
+        if (!response.ok) {
+            resultsDiv.innerHTML = `<div class="query-error">Error: ${data.detail || 'Query failed'}</div>`;
+            return;
+        }
+        
+        if (!data.results || data.results.length === 0) {
+            resultsDiv.innerHTML = '<p class="empty-state">No results returned</p>';
+            return;
+        }
+        
+        // Build table
+        const columns = Object.keys(data.results[0]);
+        let html = '<table><thead><tr>';
+        columns.forEach(col => {
+            html += `<th>${col}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        
+        data.results.forEach(row => {
+            html += '<tr>';
+            columns.forEach(col => {
+                html += `<td>${row[col] !== null ? row[col] : 'NULL'}</td>`;
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        
+        resultsDiv.innerHTML = html;
+    } catch (error) {
+        console.error('Error running query:', error);
+        document.getElementById('query-results').innerHTML = 
+            `<div class="query-error">Error: ${error.message}</div>`;
+    }
 }

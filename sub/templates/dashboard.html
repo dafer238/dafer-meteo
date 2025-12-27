@@ -4,12 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meteo Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>☀️</text></svg>" />
     <link rel="stylesheet" href="/static/style.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
   </head>
   <body>
     <header>
-      <h1>🌡️ Meteo Dashboard</h1>
+      <h1>Meteo Dashboard</h1>
       <div id="health-status" class="health-badge">
         <span id="health-indicator">●</span>
         <span id="health-text">Checking...</span>
@@ -49,6 +51,37 @@
         </div>
       </section>
 
+      <!-- Charts Section -->
+      <section class="charts-section">
+        <h2>Historical Data</h2>
+        <div class="charts-grid">
+          <div class="chart-container">
+            <h3>Temperature (DHT22)</h3>
+            <canvas id="temp-chart-dht22"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3>Temperature (BMP280)</h3>
+            <canvas id="temp-chart-bmp280"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3>Humidity (DHT22)</h3>
+            <canvas id="humidity-chart"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3>Pressure (BMP280)</h3>
+            <canvas id="pressure-chart"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3>RSSI (Signal Strength)</h3>
+            <canvas id="rssi-chart"></canvas>
+          </div>
+        </div>
+      </section>
+
       <!-- Latest Data Section -->
       <section class="latest-data-section">
         <h2>Latest Measurements</h2>
@@ -57,41 +90,33 @@
         </div>
       </section>
 
-      <!-- Charts Section -->
-      <section class="charts-section">
-        <h2>Historical Data</h2>
-
-        <div class="chart-container">
-          <h3>Temperature (DHT22)</h3>
-          <canvas id="temp-chart-dht22"></canvas>
-        </div>
-
-        <div class="chart-container">
-          <h3>Temperature (BMP280)</h3>
-          <canvas id="temp-chart-bmp280"></canvas>
-        </div>
-
-        <div class="chart-container">
-          <h3>Humidity (DHT22)</h3>
-          <canvas id="humidity-chart"></canvas>
-        </div>
-
-        <div class="chart-container">
-          <h3>Pressure (BMP280)</h3>
-          <canvas id="pressure-chart"></canvas>
-        </div>
-
-        <div class="chart-container">
-          <h3>RSSI (Signal Strength)</h3>
-          <canvas id="rssi-chart"></canvas>
-        </div>
-      </section>
-
       <!-- Statistics Section -->
       <section class="stats-section">
         <h2>Statistics</h2>
         <div id="stats-grid" class="stats-grid">
           <p class="loading">Loading statistics...</p>
+        </div>
+      </section>
+
+      <!-- Database Query Section -->
+      <section class="query-section">
+        <h2>Database Query</h2>
+        <div class="query-controls">
+          <select id="query-preset">
+            <option value="">Select a query...</option>
+            <option value="SELECT * FROM measurements ORDER BY timestamp_server DESC LIMIT 10">Last 10 measurements</option>
+            <option value="SELECT device_id, COUNT(*) as count, AVG(dht22_temperature_c) as avg_temp FROM measurements GROUP BY device_id">Device statistics</option>
+            <option value="SELECT * FROM measurements WHERE timestamp_server > strftime('%s', 'now', '-1 hour') ORDER BY timestamp_server DESC">Last hour data</option>
+            <option value="SELECT device_id, MAX(timestamp_server) as last_seen FROM measurements GROUP BY device_id">Last seen per device</option>
+            <option value="SELECT COUNT(*) as total, MIN(timestamp_server) as first, MAX(timestamp_server) as last FROM measurements">Database summary</option>
+          </select>
+          <button id="query-run-btn" class="btn-primary">Run Query</button>
+        </div>
+        <div class="query-input-group">
+          <textarea id="query-input" placeholder="Or write your custom SQL query here..."></textarea>
+        </div>
+        <div id="query-results" class="query-results">
+          <p class="empty-state">Select a query or write your own</p>
         </div>
       </section>
     </div>

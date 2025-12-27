@@ -320,6 +320,49 @@ async def get_statistics():
     return {"overall": stats, "devices": device_stats}
 
 
+@app.post("/api/query")
+async def execute_query(request: Request):
+    """Execute a custom SQL query (read-only)."""
+    try:
+        body = await request.json()
+        query = body.get("query", "").strip()
+
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
+
+        # Basic security: only allow SELECT statements
+        if not query.upper().startswith("SELECT"):
+            raise HTTPException(status_code=403, detail="Only SELECT queries are allowed")
+
+        # Block dangerous keywords
+        dangerous_keywords = ["DROP", "DELETE", "INSERT", "UPDATE", "ALTER", "CREATE", "TRUNCATE"]
+        query_upper = query.upper()
+        for keyword in dangerous_keywords:
+            if keyword in query_upper:
+                raise HTTPException(
+                    status_code=403, detail=f"Query contains forbidden keyword: {keyword}"
+                )
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        conn.close()
+
+        # Convert rows to list of dicts
+        results = [dict(row) for row in rows]
+
+        return {"results": results, "count": len(results)}
+
+    except sqlite3.Error as e:
+        logging.error(f"Query execution error: {e}")
+        raise HTTPException(status_code=400, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        logging.error(f"Query error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
 

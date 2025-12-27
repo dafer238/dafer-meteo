@@ -1,4 +1,4 @@
-/* Global Styles */
+/* Global Styles - Dark Mode Terminal Theme */
 * {
     margin: 0;
     padding: 0;
@@ -6,30 +6,33 @@
 }
 
 :root {
-    --primary-color: #2c3e50;
-    --secondary-color: #3498db;
-    --success-color: #27ae60;
-    --warning-color: #f39c12;
-    --danger-color: #e74c3c;
-    --bg-color: #ecf0f1;
-    --card-bg: #ffffff;
-    --text-color: #2c3e50;
-    --border-color: #bdc3c7;
-    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --primary-color: #00ff41;
+        --secondary-color: #00d4aa;
+        --success-color: #00ff41;
+        --warning-color: #ffaa00;
+        --danger-color: #ff4444;
+        --bg-color: #0a0e27;
+        --card-bg: #151b35;
+        --text-color: #e0e0e0;
+        --text-dim: #8892b0;
+        --border-color: #1e2a4a;
+        --shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Courier New', 'Consolas', monospace;
     background-color: var(--bg-color);
     color: var(--text-color);
-    line-height: 1.6;
+    line-height: 1.4;
+        font-size: 13px;
 }
 
 /* Header */
 header {
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    padding: 1.5rem 2rem;
+    background: linear-gradient(135deg, #0a0e27, #151b35);
+        border-bottom: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 1rem;
     box-shadow: var(--shadow);
     display: flex;
     justify-content: space-between;
@@ -37,21 +40,24 @@ header {
 }
 
 header h1 {
-    font-size: 2rem;
-    font-weight: 600;
+    font-size: 1.3rem;
+        font-weight: 700;
+        letter-spacing: 1px;
 }
 
 .health-badge {
-    background: rgba(255, 255, 255, 0.2);
-    padding: 0.5rem 1rem;
-    border-radius: 20px;
+    background: rgba(0, 255, 65, 0.1);
+        border: 1px solid var(--primary-color);
+        padding: 0.3rem 0.8rem;
+        border-radius: 3px;
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    font-size: 0.85rem;
 }
 
 #health-indicator {
-    font-size: 1.5rem;
+    font-size: 1.2rem;
     animation: pulse 2s infinite;
 }
 
@@ -70,37 +76,41 @@ header h1 {
 
 /* Container */
 .container {
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
-    padding: 2rem;
+    padding: 0.8rem;
 }
 
 /* Section Styles */
 section {
     background: var(--card-bg);
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+        border-radius: 3px;
+        padding: 0.8rem;
+        margin-bottom: 0.8rem;
     box-shadow: var(--shadow);
 }
 
 section h2 {
     color: var(--primary-color);
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid var(--secondary-color);
+    margin-bottom: 0.6rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
 }
 
 section h3 {
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
-    font-size: 1.2rem;
+    color: var(--secondary-color);
+        margin-bottom: 0.4rem;
+        font-size: 0.9rem;
 }
 
 /* Filter Controls */
 .filter-controls {
     display: flex;
-    gap: 1rem;
+    gap: 0.8rem;
     flex-wrap: wrap;
     align-items: flex-end;
 }
@@ -108,120 +118,125 @@ section h3 {
 .filter-group {
     display: flex;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.2rem;
 }
 
 .filter-group label {
     font-weight: 600;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: var(--primary-color);
 }
 
 .filter-group select {
-    padding: 0.5rem;
+    padding: 0.4rem;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    font-size: 1rem;
-    min-width: 150px;
+    border-radius: 2px;
+        font-size: 0.85rem;
+        min-width: 140px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: inherit;
 }
 
 .btn-primary {
-    background-color: var(--secondary-color);
-    color: white;
+    background-color: var(--primary-color);
+        color: var(--bg-color);
     border: none;
-    padding: 0.6rem 1.5rem;
-    border-radius: 4px;
+    padding: 0.4rem 1rem;
+        border-radius: 2px;
     cursor: pointer;
-    font-size: 1rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+        font-weight: 700;
+        font-family: inherit;
     transition: background-color 0.3s;
+    text-transform: uppercase;
 }
 
 .btn-primary:hover {
-    background-color: #2980b9;
+    background-color: var(--secondary-color);
 }
 
 /* Devices Grid */
 .devices-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 0.6rem;
 }
 
 .device-card {
-    border: 2px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
+    border: 1px solid var(--border-color);
+        border-radius: 2px;
+        padding: 0.6rem;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .device-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 255, 65, 0.2);
 }
 
 .device-card.online {
     border-color: var(--success-color);
-    background: linear-gradient(135deg, #ffffff, #f0fff4);
+    background: linear-gradient(135deg, var(--card-bg), rgba(0, 255, 65, 0.05));
 }
 
 .device-card.warning {
     border-color: var(--warning-color);
-    background: linear-gradient(135deg, #ffffff, #fffbf0);
+    background: linear-gradient(135deg, var(--card-bg), rgba(255, 170, 0, 0.05));
 }
 
 .device-card.offline {
     border-color: var(--danger-color);
-    background: linear-gradient(135deg, #ffffff, #fff5f5);
+    background: linear-gradient(135deg, var(--card-bg), rgba(255, 68, 68, 0.05));
 }
 
 .device-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
 }
 
 .device-id {
-    font-weight: 600;
-    font-size: 1.1rem;
+    font-weight: 700;
+        font-size: 0.95rem;
     color: var(--primary-color);
 }
 
 .status-badge {
-    padding: 0.3rem 0.8rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 600;
+    padding: 0.2rem 0.6rem;
+        border-radius: 2px;
+        font-size: 0.7rem;
+        font-weight: 700;
     text-transform: uppercase;
 }
 
 .status-badge.online {
     background-color: var(--success-color);
-    color: white;
+    color: var(--bg-color);
 }
 
 .status-badge.warning {
     background-color: var(--warning-color);
-    color: white;
+    color: var(--bg-color);
 }
 
 .status-badge.offline {
     background-color: var(--danger-color);
-    color: white;
+    color: var(--bg-color);
 }
 
 .device-info {
-    font-size: 0.9rem;
-    color: #555;
+    font-size: 0.8rem;
+        color: var(--text-dim);
 }
 
 .device-info div {
-    margin: 0.3rem 0;
+    margin: 0.2rem 0;
 }
 
 .device-info strong {
-    color: var(--primary-color);
+    color: var(--text-color);
 }
 
 /* Latest Data Table */
@@ -239,90 +254,176 @@ section h3 {
 
 .data-table th,
 .data-table td {
-    padding: 0.8rem;
+    padding: 0.4rem 0.6rem;
     text-align: left;
     border-bottom: 1px solid var(--border-color);
+    font-size: 0.8rem;
 }
 
 .data-table th {
-    background-color: var(--primary-color);
-    color: white;
-    font-weight: 600;
+    background-color: rgba(0, 255, 65, 0.1);
+        color: var(--primary-color);
+        font-weight: 700;
     position: sticky;
     top: 0;
+    text-transform: uppercase;
 }
 
 .data-table tr:hover {
-    background-color: #f8f9fa;
+    background-color: rgba(0, 212, 170, 0.05);
 }
 
 .data-table td {
-    font-size: 0.9rem;
+    color: var(--text-dim);
 }
 
 /* Charts */
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+}
 .chart-container {
-    margin-bottom: 2rem;
-    background: white;
-    padding: 1rem;
-    border-radius: 8px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.2);
+        padding: 0.6rem;
+        border-radius: 2px;
+        border: 1px solid var(--border-color);
 }
 
 .chart-container canvas {
-    max-height: 300px;
+    max-height: 250px;
 }
 
 /* Statistics Grid */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 0.6rem;
 }
 
 .stat-card {
-    background: linear-gradient(135deg, var(--secondary-color), #5dade2);
-    color: white;
-    padding: 1.5rem;
-    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(0, 255, 65, 0.15), rgba(0, 212, 170, 0.1));
+        border: 1px solid var(--primary-color);
+        color: var(--text-color);
+        padding: 0.8rem;
+        border-radius: 2px;
     text-align: center;
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
+        color: var(--primary-color);
 }
 
 .stat-label {
-    font-size: 0.9rem;
-    opacity: 0.9;
+    font-size: 0.75rem;
+        opacity: 0.8;
+        text-transform: uppercase;
+    }
+    
+    /* Query Section */
+    .query-controls {
+        display: flex;
+        gap: 0.6rem;
+        margin-bottom: 0.6rem;
+        align-items: center;
+    }
+    
+    .query-controls select {
+        flex: 1;
+        padding: 0.4rem;
+        border: 1px solid var(--border-color);
+        border-radius: 2px;
+        font-size: 0.85rem;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: inherit;
+    }
+    
+    .query-input-group {
+        margin-bottom: 0.6rem;
+    }
+    
+    .query-input-group textarea {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 2px;
+        font-size: 0.85rem;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: inherit;
+        min-height: 60px;
+        resize: vertical;
+    }
+    
+    .query-results {
+        max-height: 400px;
+        overflow: auto;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid var(--border-color);
+        border-radius: 2px;
+        padding: 0.6rem;
+    }
+    
+    .query-results table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.8rem;
+    }
+    
+    .query-results th,
+    .query-results td {
+        padding: 0.3rem 0.5rem;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .query-results th {
+        background-color: rgba(0, 255, 65, 0.1);
+        color: var(--primary-color);
+        font-weight: 700;
+        position: sticky;
+        top: 0;
+    }
+    
+    .query-results td {
+        color: var(--text-dim);
+    }
+    
+    .query-error {
+        color: var(--danger-color);
+        padding: 0.5rem;
+        font-size: 0.85rem;
 }
 
 /* Loading and Empty States */
 .loading {
     text-align: center;
-    padding: 2rem;
-    color: #7f8c8d;
+    padding: 1rem;
+        color: var(--text-dim);
     font-style: italic;
+    font-size: 0.85rem;
 }
 
 .empty-state {
     text-align: center;
-    padding: 3rem;
-    color: #7f8c8d;
+    padding: 1.5rem;
+        color: var(--text-dim);
+        font-size: 0.85rem;
 }
 
 .empty-state p {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.3rem;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     header {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.5rem;
     }
 
     .filter-controls {
@@ -334,8 +435,11 @@ section h3 {
         grid-template-columns: 1fr;
     }
 
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
     .data-table {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
     }
 }
 
@@ -343,7 +447,7 @@ section h3 {
 @keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(10px);
+        transform: translateY(5px);
     }
     to {
         opacity: 1;
