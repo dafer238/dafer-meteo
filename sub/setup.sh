@@ -35,7 +35,7 @@ cd "$PROJECT_DIR"
 echo "Step 1: Installing Python dependencies..."
 echo "----------------------------------------"
 # Activate ape environment and install packages
-sudo -u dafer bash -c "source /home/dafer/venvs/denv/bin/activate && pip install -r requirements.txt"
+sudo -u dafer bash -c "source /home/dafer/code/python/venvs/denv/bin/activate && /home/dafer/.local/bin/uv pip install -r requirements.txt"
 echo "✓ Dependencies installed"
 echo ""
 
