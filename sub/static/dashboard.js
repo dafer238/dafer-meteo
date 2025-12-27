@@ -70,7 +70,8 @@ async function updateDataInBackground() {
         loadHealthStatus(),
         updateDeviceStatusData(),
         updateLatestDataTable(),
-        updateChartsData()
+        updateChartsData(),
+        loadStatistics()
     ]);
 }
 

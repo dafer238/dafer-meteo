@@ -320,6 +320,12 @@ async def get_statistics():
     return {"overall": stats, "devices": device_stats}
 
 
+@app.get("/api/query/test")
+async def test_query_endpoint():
+    """Test if query endpoint is accessible."""
+    return {"status": "Query endpoint is working", "method": "GET"}
+
+
 @app.post("/api/query")
 async def execute_query(request: Request):
     """Execute a custom SQL query (read-only)."""
