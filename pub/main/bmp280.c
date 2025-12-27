@@ -18,6 +18,13 @@ static const char *TAG = "BMP280";
 #define BMP280_REG_ID 0xD0
 #define BMP280_REG_CALIB 0x88
 
+// Mode configuration storage
+static struct {
+  bmp280_mode_t mode;
+  uint8_t ctrl_meas_value;  // Control register value for forced mode
+  uint8_t meas_time_ms;     // Typical measurement time
+} mode_config;
+
 // Calibration data
 static struct {
   uint16_t dig_T1;
@@ -47,8 +54,21 @@ static esp_err_t bmp280_read_reg(uint8_t reg, uint8_t *data, size_t len) {
                                       pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS));
 }
 
-esp_err_t bmp280_init(void) {
+esp_err_t bmp280_init(bmp280_mode_t mode) {
   esp_err_t ret;
+
+  // Store mode configuration
+  mode_config.mode = mode;
+  
+  if (mode == BMP280_MODE_WEATHER_MONITORING) {
+    // Ultra low power: osrs_t=001 (×1), osrs_p=001 (×1), mode=01 (forced)
+    mode_config.ctrl_meas_value = 0x25;  // 00100101
+    mode_config.meas_time_ms = 10;       // ~7.5ms typical
+  } else { // BMP280_MODE_HIGH_RESOLUTION (default)
+    // High resolution: osrs_t=010 (×2), osrs_p=101 (×16), mode=01 (forced)
+    mode_config.ctrl_meas_value = 0x55;  // 01010101
+    mode_config.meas_time_ms = 50;       // ~43.5ms typical
+  }
 
   // Configure I2C
   i2c_config_t conf = {
@@ -103,15 +123,18 @@ esp_err_t bmp280_init(void) {
   calib.dig_P8 = (calib_data[21] << 8) | calib_data[20];
   calib.dig_P9 = (calib_data[23] << 8) | calib_data[22];
 
-  // Configure sensor: normal mode, temp oversampling x2, pressure oversampling x16
-  bmp280_write_reg(BMP280_REG_CTRL_MEAS, 0x57);
+  // Put sensor in sleep mode initially
+  uint8_t sleep_mode = (mode_config.ctrl_meas_value & 0xFC); // Clear mode bits to set sleep
+  bmp280_write_reg(BMP280_REG_CTRL_MEAS, sleep_mode);
   
-  // Config: standby 0.5ms, filter off
+  // Config: standby time doesn't matter in forced mode, filter off (000)
+  // t_sb[2:0]=000, filter[2:0]=000, spi3w_en=0
   bmp280_write_reg(BMP280_REG_CONFIG, 0x00);
 
-  vTaskDelay(pdMS_TO_TICKS(100)); // Wait for first measurement
-
-  ESP_LOGI(TAG, "BMP280 initialized");
+  const char *mode_name = (mode_config.mode == BMP280_MODE_WEATHER_MONITORING) 
+                          ? "Weather monitoring (osrs_t=×1, osrs_p=×1)" 
+                          : "High resolution (osrs_t=×2, osrs_p=×16)";
+  ESP_LOGI(TAG, "BMP280 initialized - Mode: %s, Forced mode, filter=off", mode_name);
   return ESP_OK;
 }
 
@@ -152,10 +175,32 @@ static uint32_t bmp280_compensate_press(int32_t adc_P) {
   return (uint32_t)p;
 }
 
-void bmp280_read(float *temp, float *press) {
+void bmp280_read(float *temp, float *press,
+                 float temp_offset, float temp_factor,
+                 float press_offset, float press_factor) {
+  // Trigger forced mode measurement with configured oversampling
+  esp_err_t ret = bmp280_write_reg(BMP280_REG_CTRL_MEAS, mode_config.ctrl_meas_value);
+  if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to trigger measurement");
+    *temp = -999.0;
+    *press = -999.0;
+    return;
+  }
+
+  // Wait for measurement to complete based on mode
+  vTaskDelay(pdMS_TO_TICKS(mode_config.meas_time_ms));
+
+  // Check if measurement is done (bit 3 of status register = 0 when ready)
+  uint8_t status;
+  for (int i = 0; i < 10; i++) {
+    bmp280_read_reg(BMP280_REG_STATUS, &status, 1);
+    if ((status & 0x08) == 0) break; // measuring bit cleared
+    vTaskDelay(pdMS_TO_TICKS(1));
+  }
+
   uint8_t data[6];
   
-  esp_err_t ret = bmp280_read_reg(BMP280_REG_PRESS_MSB, data, 6);
+  ret = bmp280_read_reg(BMP280_REG_PRESS_MSB, data, 6);
   if (ret != ESP_OK) {
     ESP_LOGE(TAG, "Failed to read sensor data");
     *temp = -999.0;
@@ -169,8 +214,13 @@ void bmp280_read(float *temp, float *press) {
   int32_t T = bmp280_compensate_temp(adc_T);
   uint32_t P = bmp280_compensate_press(adc_P);
 
-  *temp = T / 100.0;
-  *press = P / 256.0;
+  float raw_temp = T / 100.0;
+  float raw_press = P / 256.0;
 
-  ESP_LOGI(TAG, "Temperature: %.2f°C, Pressure: %.2f Pa", *temp, *press);
+  // Apply calibration: calibrated = (raw * factor) + offset
+  *temp = (raw_temp * temp_factor) + temp_offset;
+  *press = (raw_press * press_factor) + press_offset;
+
+  ESP_LOGI(TAG, "Temperature: %.2f°C (raw: %.2f°C), Pressure: %.2f Pa (raw: %.2f Pa)", 
+           *temp, raw_temp, *press, raw_press);
 }

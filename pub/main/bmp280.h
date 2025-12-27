@@ -13,5 +13,13 @@
 // BMP280 I2C Address
 #define BMP280_ADDR CONFIG_BMP280_I2C_ADDR
 
-esp_err_t bmp280_init(void);
-void bmp280_read(float *temp, float *press);
+// BMP280 Operating Modes
+typedef enum {
+  BMP280_MODE_WEATHER_MONITORING,  // Ultra low power: osrs_p=×1, osrs_t=×1, forced mode
+  BMP280_MODE_HIGH_RESOLUTION      // High quality: osrs_p=×16, osrs_t=×2, forced mode (default)
+} bmp280_mode_t;
+
+esp_err_t bmp280_init(bmp280_mode_t mode);
+void bmp280_read(float *temp, float *press, 
+                 float temp_offset, float temp_factor,
+                 float press_offset, float press_factor);

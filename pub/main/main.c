@@ -31,7 +31,7 @@ void app_main(void) {
 
   // Initialize sensors
   ESP_LOGI(TAG, "Initializing sensors...");
-  ESP_ERROR_CHECK(bmp280_init());
+  ESP_ERROR_CHECK(bmp280_init(BMP280_MODE_HIGH_RESOLUTION)); // Use high quality mode
   ESP_ERROR_CHECK(dht22_init());
 
   // Blink to indicate sensor initialization complete
@@ -41,8 +41,14 @@ void app_main(void) {
   float dht_temp = 0, dht_rh = 0;
   float bmp_temp = 0, bmp_press = 0;
 
-  dht22_read(&dht_temp, &dht_rh);
-  bmp280_read(&bmp_temp, &bmp_press);
+  // Read sensors with calibration factors
+  // DHT22: no calibration applied (factor=1.0, offset=0.0)
+  dht22_read(&dht_temp, &dht_rh, 0.0, 1.0, 0.0, 1.0);
+  
+  // BMP280: apply -1.2°C offset to temperature (module heating compensation)
+  // Temperature: offset=-1.2, factor=1.0
+  // Pressure: no calibration (offset=0.0, factor=1.0)
+  bmp280_read(&bmp_temp, &bmp_press, -1.2, 1.0, 0.0, 1.0);
 
   int8_t rssi = wifi_get_rssi();
 
