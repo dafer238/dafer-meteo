@@ -1,0 +1,17 @@
+[Unit]
+Description=Meteo MQTT Listener Service
+After=network.target mosquitto.service
+
+[Service]
+Type=simple
+User=dafer
+WorkingDirectory=/home/dafer/programming/dafer-meteo/sub
+ExecStart=/bin/bash -c 'source /home/dafer/.local/share/ape/venvs/default/bin/activate && python main.py'
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=meteo-mqtt
+
+[Install]
+WantedBy=multi-user.target

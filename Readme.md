@@ -19,6 +19,10 @@ sudo nvim /etc/mosquitto/conf.d/auth.conf
 allow_anonymous false
 password_file /etc/mosquitto/passwd
 ```
+```bash
+sudo chown root:mosquitto /etc/mosquitto/passwd
+sudo chmod 640 /etc/mosquitto/passwd
+```
 ### Restart the service
 ```bash
 sudo systemctl restart mosquitto

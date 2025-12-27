@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meteo Dashboard</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <h1>🌡️ Meteo Dashboard</h1>
+      <div id="health-status" class="health-badge">
+        <span id="health-indicator">●</span>
+        <span id="health-text">Checking...</span>
+      </div>
+    </header>
+
+    <div class="container">
+      <!-- Filters Section -->
+      <section class="filter-section">
+        <h2>Filters</h2>
+        <div class="filter-controls">
+          <div class="filter-group">
+            <label for="device-filter">Device:</label>
+            <select id="device-filter">
+              <option value="">All Devices</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="time-range">Time Range:</label>
+            <select id="time-range">
+              <option value="1">Last Hour</option>
+              <option value="6">Last 6 Hours</option>
+              <option value="24" selected>Last 24 Hours</option>
+              <option value="72">Last 3 Days</option>
+              <option value="168">Last Week</option>
+            </select>
+          </div>
+          <button id="refresh-btn" class="btn-primary">Refresh Data</button>
+        </div>
+      </section>
+
+      <!-- Device Status Section -->
+      <section class="devices-section">
+        <h2>Connected Devices</h2>
+        <div id="devices-grid" class="devices-grid">
+          <p class="loading">Loading devices...</p>
+        </div>
+      </section>
+
+      <!-- Latest Data Section -->
+      <section class="latest-data-section">
+        <h2>Latest Measurements</h2>
+        <div id="latest-data-table">
+          <p class="loading">Loading latest data...</p>
+        </div>
+      </section>
+
+      <!-- Charts Section -->
+      <section class="charts-section">
+        <h2>Historical Data</h2>
+
+        <div class="chart-container">
+          <h3>Temperature (DHT22)</h3>
+          <canvas id="temp-chart-dht22"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3>Temperature (BMP280)</h3>
+          <canvas id="temp-chart-bmp280"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3>Humidity (DHT22)</h3>
+          <canvas id="humidity-chart"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3>Pressure (BMP280)</h3>
+          <canvas id="pressure-chart"></canvas>
+        </div>
+
+        <div class="chart-container">
+          <h3>RSSI (Signal Strength)</h3>
+          <canvas id="rssi-chart"></canvas>
+        </div>
+      </section>
+
+      <!-- Statistics Section -->
+      <section class="stats-section">
+        <h2>Statistics</h2>
+        <div id="stats-grid" class="stats-grid">
+          <p class="loading">Loading statistics...</p>
+        </div>
+      </section>
+    </div>
+
+    <script src="/static/dashboard.js"></script>
+  </body>
+</html>
