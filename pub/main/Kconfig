@@ -8,10 +8,10 @@ config NODE_NAME
         Used as device_id and MQTT topic component.
 
 config PUBLISH_INTERVAL
-    int "Publish interval (seconds)"
-    default 30
+    int "Publish interval (milliseconds)"
+    default 30000
     help
-        Time between measurements in deep sleep.
+        Time between measurements in deep sleep (in milliseconds).
 
 config FW_VERSION
     string "Firmware version"

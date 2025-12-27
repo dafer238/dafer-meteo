@@ -58,11 +58,11 @@ void app_main(void) {
   // Quick success blinks
   led_blink_success(3);
 
-  ESP_LOGI(TAG, "Sleeping %d sec", CONFIG_PUBLISH_INTERVAL);
+  ESP_LOGI(TAG, "Sleeping %d ms (%.1f sec)", CONFIG_PUBLISH_INTERVAL, CONFIG_PUBLISH_INTERVAL / 1000.0);
   
   // Turn off LED before deep sleep
   led_off();
   
-  esp_sleep_enable_timer_wakeup(CONFIG_PUBLISH_INTERVAL * 1000000ULL);
+  esp_sleep_enable_timer_wakeup(CONFIG_PUBLISH_INTERVAL * 1000ULL);
   esp_deep_sleep_start();
 }
