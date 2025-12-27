@@ -451,10 +451,11 @@ async function updateChartsData() {
                     // Add only new data points
                     newRows.forEach(row => {
                         const timestamp = row.timestamp_server * 1000;
-                        if (!existingTimestamps.has(timestamp) && row[field] !== null) {
+                        const value = row[field];
+                        if (!existingTimestamps.has(timestamp) && isValidDataPoint(field, value)) {
                             dataset.data.push({
                                 x: timestamp,
-                                y: row[field]
+                                y: value
                             });
                         }
                     });
@@ -462,9 +463,9 @@ async function updateChartsData() {
                     // Sort by timestamp
                     dataset.data.sort((a, b) => a.x - b.x);
                     
-                    // Keep only data within time range
+                    // Keep only data within time range and valid points
                     const cutoffTime = Date.now() - (selectedTimeRange * 3600 * 1000);
-                    dataset.data = dataset.data.filter(d => d.x > cutoffTime);
+                    dataset.data = dataset.data.filter(d => d.x > cutoffTime && isValidDataPoint(field, d.y));
                 }
             });
             
@@ -489,24 +490,101 @@ function getFieldForChart(chartId) {
     return fieldMap[chartId];
 }
 
+// Filter outliers based on field type (absolute limits)
+function isValidDataPoint(field, value) {
+    if (value === null || value === undefined) return false;
+    
+    // Define reasonable ranges for each sensor type
+    const ranges = {
+        'dht22_temperature_c': { min: -10, max: 50 },
+        'bmp280_temperature_c': { min: -10, max: 50 },
+        'dht22_humidity_percent': { min: 0, max: 100 },
+        'bmp280_pressure_pa': { min: 80000, max: 110000 },
+        'rssi': { min: -100, max: 0 }
+    };
+    
+    const range = ranges[field];
+    if (!range) return true; // Unknown field, allow it
+    
+    return value >= range.min && value <= range.max;
+}
+
+// Filter outliers using moving average (relative deviation)
+function filterOutliersByMovingAverage(dataPoints, field, windowSize = 5) {
+    if (dataPoints.length === 0) return dataPoints;
+    
+    // Define maximum allowed deviation from moving average
+    const deviationThresholds = {
+        'dht22_temperature_c': 5,      // ±5°C from moving average
+        'bmp280_temperature_c': 5,     // ±5°C from moving average
+        'dht22_humidity_percent': 15,   // ±15% from moving average
+        'bmp280_pressure_pa': 2000,    // ±2000 Pa from moving average
+        'rssi': 20                      // ±20 dBm from moving average
+    };
+    
+    const maxDeviation = deviationThresholds[field];
+    if (!maxDeviation) return dataPoints; // No threshold defined, allow all
+    
+    const filtered = [];
+    
+    for (let i = 0; i < dataPoints.length; i++) {
+        const point = dataPoints[i];
+        
+        // First check absolute limits
+        if (!isValidDataPoint(field, point.y)) {
+            continue; // Skip this point
+        }
+        
+        // For first few points, accept them (not enough history for moving average)
+        if (i < windowSize) {
+            filtered.push(point);
+            continue;
+        }
+        
+        // Calculate moving average from previous valid points
+        const recentPoints = filtered.slice(-windowSize);
+        const sum = recentPoints.reduce((acc, p) => acc + p.y, 0);
+        const movingAvg = sum / recentPoints.length;
+        
+        // Check if current point deviates too much from moving average
+        const deviation = Math.abs(point.y - movingAvg);
+        
+        if (deviation <= maxDeviation) {
+            filtered.push(point);
+        }
+        // else: skip this point (it's an outlier)
+    }
+    
+    return filtered;
+}
+
 // Render or update a chart
 function renderChart(chartId, title, datasets, field) {
     const ctx = document.getElementById(chartId);
     if (!ctx) return;
     
-    const chartDatasets = datasets.map(ds => ({
-        label: ds.deviceId,
-        data: ds.rows.map(row => ({
+    const chartDatasets = datasets.map(ds => {
+        // First map all points
+        const allPoints = ds.rows.map(row => ({
             x: row.timestamp_server * 1000,
             y: row[field]
-        })).filter(point => point.y !== null),
-        borderColor: ds.color,
-        backgroundColor: ds.color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
-        tension: 0.4,
-        fill: true,
-        pointRadius: 2,
-        pointHoverRadius: 4
-    }));
+        }));
+        
+        // Apply both absolute and relative filtering
+        const filteredPoints = filterOutliersByMovingAverage(allPoints, field);
+        
+        return {
+            label: ds.deviceId,
+            data: filteredPoints,
+            borderColor: ds.color,
+            backgroundColor: ds.color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+            tension: 0.4,
+            fill: true,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            spanGaps: true  // This interpolates across filtered points
+        };
+    });
     
     const config = {
         type: 'line',
