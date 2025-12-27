@@ -12,7 +12,7 @@ static const char *TAG = "MQTT";
 
 void mqtt_publish_measurement(const char *device_id, const char *fw,
                               float dht_temp, float dht_rh, float bmp_temp,
-                              float bmp_press) {
+                              float bmp_press, int8_t rssi) {
   esp_mqtt_client_config_t cfg = {
       .broker.address.uri = MQTT_URI,
       .credentials.username = MQTT_USER,
@@ -35,11 +35,14 @@ void mqtt_publish_measurement(const char *device_id, const char *fw,
            "\"device_id\":\"%s\","
            "\"fw\":\"%s\","
            "\"ts_device\":%lld,"
+           "\"rssi\":%d,"
            "\"dht22\":{\"temperature_c\":%.2f,\"humidity_percent\":%.2f},"
            "\"bmp280\":{\"temperature_c\":%.2f,\"pressure_pa\":%.2f}"
            "}",
-           device_id, fw, ts, dht_temp, dht_rh, bmp_temp, bmp_press);
+           device_id, fw, ts, rssi, dht_temp, dht_rh, bmp_temp, bmp_press);
 
+  ESP_LOGI(TAG, "Payload: %s", payload);
+  
   esp_mqtt_client_publish(client, topic, payload, 0, 1, 0);
   ESP_LOGI(TAG, "Published to %s", topic);
 

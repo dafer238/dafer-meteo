@@ -5,5 +5,6 @@ idf_component_register(
         "mqtt_pub.c"
         "dht22.c"
         "bmp280.c"
+        "led.c"
     INCLUDE_DIRS "."
 )

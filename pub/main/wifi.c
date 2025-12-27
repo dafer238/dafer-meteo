@@ -49,3 +49,14 @@ void wifi_init_and_connect(void) {
 
   ESP_LOGI(TAG, "Wi-Fi connected");
 }
+
+int8_t wifi_get_rssi(void) {
+  wifi_ap_record_t ap_info;
+  esp_err_t err = esp_wifi_sta_get_ap_info(&ap_info);
+  if (err != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to get AP info: %s", esp_err_to_name(err));
+    return 0;
+  }
+  ESP_LOGI(TAG, "RSSI: %d dBm", ap_info.rssi);
+  return ap_info.rssi;
+}

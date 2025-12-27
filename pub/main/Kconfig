@@ -17,6 +17,13 @@ config FW_VERSION
     string "Firmware version"
     default "0.1.0"
 
+config LED_GPIO
+    int "Onboard LED GPIO"
+    default 2
+    help
+        GPIO pin for status LED (typically GPIO 2 on most ESP32 boards).
+        LED will blink during operation and signal successful MQTT publish.
+
 config DHT22_GPIO
     int "DHT22 data GPIO"
     default 4
