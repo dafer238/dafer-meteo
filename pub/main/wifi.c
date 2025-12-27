@@ -4,8 +4,8 @@
 #include "esp_wifi.h"
 #include "freertos/event_groups.h"
 
-#define WIFI_SSID "YOUR_WIFI"
-#define WIFI_PASS "YOUR_PASS"
+#define WIFI_SSID "Los Perez"  // Replace with your actual WiFi SSID
+#define WIFI_PASS "Losperez2026."  // Replace with your actual WiFi password
 
 static EventGroupHandle_t wifi_event_group;
 #define WIFI_CONNECTED_BIT BIT0

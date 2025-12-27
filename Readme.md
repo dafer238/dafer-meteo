@@ -9,7 +9,7 @@ sudo systemctl start mosquitto
 
 ### First create password.
 ```bash
-sudo mosquitto_passwd -c /etc/mosquitto/passwd esp32
+sudo mosquitto_passwd -c /etc/mosquitto/passwd esp32_home
 ```
 #### Introduce in the file
 ```bash

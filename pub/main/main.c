@@ -11,14 +11,10 @@
 #include "mqtt_pub.h"
 #include "wifi.h"
 
-#define DEVICE_ID "living_room"
-#define FW_VERSION "0.1.0"
-#define SLEEP_SEC 30
-
 static const char *TAG = "MAIN";
 
 void app_main(void) {
-  ESP_LOGI(TAG, "Boot %s FW %s", DEVICE_ID, FW_VERSION);
+  ESP_LOGI(TAG, "Boot %s FW %s", CONFIG_NODE_NAME, CONFIG_FW_VERSION);
 
   ESP_ERROR_CHECK(nvs_flash_init());
   ESP_ERROR_CHECK(esp_netif_init());
@@ -28,16 +24,21 @@ void app_main(void) {
 
   /* Optional SNTP later */
 
+  // Initialize sensors
+  ESP_LOGI(TAG, "Initializing sensors...");
+  ESP_ERROR_CHECK(bmp280_init());
+  ESP_ERROR_CHECK(dht22_init());
+
   float dht_temp = 0, dht_rh = 0;
   float bmp_temp = 0, bmp_press = 0;
 
   dht22_read(&dht_temp, &dht_rh);
   bmp280_read(&bmp_temp, &bmp_press);
 
-  mqtt_publish_measurement(DEVICE_ID, FW_VERSION, dht_temp, dht_rh, bmp_temp,
+  mqtt_publish_measurement(CONFIG_NODE_NAME, CONFIG_FW_VERSION, dht_temp, dht_rh, bmp_temp,
                            bmp_press);
 
-  ESP_LOGI(TAG, "Sleeping %d sec", SLEEP_SEC);
-  esp_sleep_enable_timer_wakeup(SLEEP_SEC * 1000000ULL);
+  ESP_LOGI(TAG, "Sleeping %d sec", CONFIG_PUBLISH_INTERVAL);
+  esp_sleep_enable_timer_wakeup(CONFIG_PUBLISH_INTERVAL * 1000000ULL);
   esp_deep_sleep_start();
 }

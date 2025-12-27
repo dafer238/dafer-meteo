@@ -1,5 +1,6 @@
 #pragma once
 
+#include "sensor_config.h"
 #include "driver/gpio.h"
 #include "esp_err.h"
 

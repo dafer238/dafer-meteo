@@ -17,4 +17,28 @@ config FW_VERSION
     string "Firmware version"
     default "0.1.0"
 
+config DHT22_GPIO
+    int "DHT22 data GPIO"
+    default 4
+    help
+        GPIO pin connected to DHT22 data line.
+
+config BMP280_I2C_ADDR
+    hex "BMP280 I2C address"
+    default 0x76
+    help
+        I2C address of BMP280 sensor (typically 0x76 or 0x77).
+
+config I2C_SDA_GPIO
+    int "I2C SDA GPIO"
+    default 21
+    help
+        GPIO pin for I2C SDA (data line).
+
+config I2C_SCL_GPIO
+    int "I2C SCL GPIO"
+    default 22
+    help
+        GPIO pin for I2C SCL (clock line).
+
 endmenu

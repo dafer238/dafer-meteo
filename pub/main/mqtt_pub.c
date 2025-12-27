@@ -7,7 +7,6 @@
 #define MQTT_URI "mqtt://192.168.1.100"
 #define MQTT_USER "esp32_home"
 #define MQTT_PASS "2525"
-#define MQTT_TOPIC "sensors/living_room/environment"
 
 static const char *TAG = "MQTT";
 
@@ -26,7 +25,10 @@ void mqtt_publish_measurement(const char *device_id, const char *fw,
   vTaskDelay(pdMS_TO_TICKS(2000));
 
   char payload[256];
+  char topic[128];
   int64_t ts = time(NULL);
+
+  snprintf(topic, sizeof(topic), "sensors/%s/environment", device_id);
 
   snprintf(payload, sizeof(payload),
            "{"
@@ -38,8 +40,8 @@ void mqtt_publish_measurement(const char *device_id, const char *fw,
            "}",
            device_id, fw, ts, dht_temp, dht_rh, bmp_temp, bmp_press);
 
-  esp_mqtt_client_publish(client, MQTT_TOPIC, payload, 0, 1, 0);
-  ESP_LOGI(TAG, "Published");
+  esp_mqtt_client_publish(client, topic, payload, 0, 1, 0);
+  ESP_LOGI(TAG, "Published to %s", topic);
 
   vTaskDelay(pdMS_TO_TICKS(1000));
   esp_mqtt_client_stop(client);
