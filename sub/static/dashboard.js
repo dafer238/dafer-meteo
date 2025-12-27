@@ -448,12 +448,15 @@ async function updateChartsData() {
                     // Get existing timestamps
                     const existingTimestamps = new Set(dataset.data.map(d => d.x));
                     
-                    // Add only new data points
+                    // Collect all points (existing + new)
+                    const allPoints = [...dataset.data];
+                    
+                    // Add new data points (with absolute filtering only for now)
                     newRows.forEach(row => {
                         const timestamp = row.timestamp_server * 1000;
                         const value = row[field];
                         if (!existingTimestamps.has(timestamp) && isValidDataPoint(field, value)) {
-                            dataset.data.push({
+                            allPoints.push({
                                 x: timestamp,
                                 y: value
                             });
@@ -461,11 +464,14 @@ async function updateChartsData() {
                     });
                     
                     // Sort by timestamp
-                    dataset.data.sort((a, b) => a.x - b.x);
+                    allPoints.sort((a, b) => a.x - b.x);
                     
-                    // Keep only data within time range and valid points
+                    // Keep only data within time range
                     const cutoffTime = Date.now() - (selectedTimeRange * 3600 * 1000);
-                    dataset.data = dataset.data.filter(d => d.x > cutoffTime && isValidDataPoint(field, d.y));
+                    const recentPoints = allPoints.filter(d => d.x > cutoffTime);
+                    
+                    // Apply relative filtering to all points
+                    dataset.data = filterOutliersByMovingAverage(recentPoints, field);
                 }
             });
             
