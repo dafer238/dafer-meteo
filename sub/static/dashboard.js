@@ -1,5 +1,5 @@
 // Configuration
-const REFRESH_INTERVAL = 10000; // 10 seconds
+const REFRESH_INTERVAL = 3000; // 3 seconds
 const MADRID_TZ = 'Europe/Madrid';
 let charts = {};
 let selectedDevice = '';
@@ -617,7 +617,7 @@ function renderChart(chartId, title, datasets, field) {
     charts[chartId] = new Chart(ctx, config);
 }
 
-// Load statistics
+// Load statistics (full render)
 async function loadStatistics() {
     try {
         const response = await fetch('/api/stats');
@@ -625,29 +625,48 @@ async function loadStatistics() {
         
         const statsGrid = document.getElementById('stats-grid');
         
-        const html = `
-            <div class="stat-card">
-                <div class="stat-value">${data.overall.total_measurements.toLocaleString()}</div>
-                <div class="stat-label">Total Measurements</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${data.overall.total_devices}</div>
-                <div class="stat-label">Total Devices</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${formatTimestamp(data.overall.first_measurement)}</div>
-                <div class="stat-label">First Measurement</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value">${formatTimestamp(data.overall.last_measurement)}</div>
-                <div class="stat-label">Last Measurement</div>
-            </div>
-        `;
+        // Check if cards already exist
+        const existingCards = statsGrid.querySelectorAll('.stat-card');
         
-        statsGrid.innerHTML = html;
+        if (existingCards.length === 0) {
+            // First load - create the cards
+            const html = `
+                <div class="stat-card" data-stat="total-measurements">
+                    <div class="stat-value">${data.overall.total_measurements.toLocaleString()}</div>
+                    <div class="stat-label">Total Measurements</div>
+                </div>
+                <div class="stat-card" data-stat="total-devices">
+                    <div class="stat-value">${data.overall.total_devices}</div>
+                    <div class="stat-label">Total Devices</div>
+                </div>
+                <div class="stat-card" data-stat="first-measurement">
+                    <div class="stat-value">${formatTimestamp(data.overall.first_measurement)}</div>
+                    <div class="stat-label">First Measurement</div>
+                </div>
+                <div class="stat-card" data-stat="last-measurement">
+                    <div class="stat-value">${formatTimestamp(data.overall.last_measurement)}</div>
+                    <div class="stat-label">Last Measurement</div>
+                </div>
+            `;
+            statsGrid.innerHTML = html;
+        } else {
+            // Update existing values
+            updateStatValue('total-measurements', data.overall.total_measurements.toLocaleString());
+            updateStatValue('total-devices', data.overall.total_devices);
+            updateStatValue('first-measurement', formatTimestamp(data.overall.first_measurement));
+            updateStatValue('last-measurement', formatTimestamp(data.overall.last_measurement));
+        }
     } catch (error) {
         console.error('Error loading statistics:', error);
         document.getElementById('stats-grid').innerHTML = '<p class="loading">Error loading statistics</p>';
+    }
+}
+
+// Update individual stat card value
+function updateStatValue(statName, value) {
+    const card = document.querySelector(`[data-stat="${statName}"] .stat-value`);
+    if (card) {
+        card.textContent = value;
     }
 }
 
