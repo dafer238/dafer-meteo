@@ -1,0 +1,20 @@
+menu "Sensor node configuration"
+
+config NODE_NAME
+    string "Node name (device_id)"
+    default "living_room"
+    help
+        Logical name of this ESP32 node.
+        Used as device_id and MQTT topic component.
+
+config PUBLISH_INTERVAL
+    int "Publish interval (seconds)"
+    default 30
+    help
+        Time between measurements in deep sleep.
+
+config FW_VERSION
+    string "Firmware version"
+    default "0.1.0"
+
+endmenu
