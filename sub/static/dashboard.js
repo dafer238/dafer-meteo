@@ -14,10 +14,19 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard initializing...');
     
     // Load DHT22 visibility preference from localStorage
+    // Default is hidden - only show if explicitly set to 'true'
     const savedVisibility = localStorage.getItem('dht22Visible');
     if (savedVisibility === 'true') {
         dht22Visible = true;
         document.body.classList.add('dht22-visible');
+    } else {
+        // Ensure hidden by default (remove class if present)
+        dht22Visible = false;
+        document.body.classList.remove('dht22-visible');
+        // Clear any old 'true' value in localStorage
+        if (savedVisibility !== null && savedVisibility !== 'false') {
+            localStorage.setItem('dht22Visible', 'false');
+        }
     }
     updateDht22ToggleButton();
     
