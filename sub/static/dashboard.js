@@ -499,7 +499,11 @@ async function updateChartsData() {
             const chart = charts[chartId];
             if (!chart) return;
             
+            // Skip special charts that have custom rendering logic
+            if (chartId === 'heap-chart' || chartId === 'pressure-trend-chart') return;
+            
             const field = getFieldForChart(chartId);
+            if (!field) return; // Skip if no field mapping exists
             
             // Update each dataset
             chart.data.datasets.forEach(dataset => {
