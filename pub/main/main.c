@@ -48,7 +48,7 @@ void app_main(void) {
   // BMP280: apply -1.2°C offset to temperature (module heating compensation)
   // Temperature: offset=-1.2, factor=1.0
   // Pressure: no calibration (offset=0.0, factor=1.0)
-  bmp280_read(&bmp_temp, &bmp_press, -1.2, 1.0, 0.0, 1.0);
+  bmp280_read(&bmp_temp, &bmp_press, 0, 1.0, 0.0, 1.0);
 
   int8_t rssi = wifi_get_rssi();
 
