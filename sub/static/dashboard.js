@@ -554,7 +554,6 @@ function getFieldForChart(chartId) {
         'humidity-chart': 'dht22_humidity_percent',
         'pressure-chart': 'bmp280_pressure_pa',
         'altitude-chart': 'altitude_m',
-        'heap-chart': 'free_heap',
         'rssi-chart': 'rssi'
     };
     return fieldMap[chartId];
