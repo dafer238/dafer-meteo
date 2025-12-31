@@ -896,9 +896,6 @@ function renderPressureTrendChart(chartId, datasets) {
                         displayFormats: { hour: 'HH:mm', minute: 'HH:mm' },
                         tooltipFormat: 'PPpp'
                     },
-                    adapters: {
-                        date: { locale: { code: 'es' } }
-                    },
                     ticks: {
                         color: '#8892b0',
                         font: { family: 'Courier New, monospace', size: 10 }
@@ -959,7 +956,7 @@ function renderHeapChart(chartId, datasets) {
         data: { datasets: chartDatasets },
         options: {
             responsive: true,
-            maintainAspectRatio: true,
+            maintainAspectRatio: false,
             interaction: {
                 mode: 'index',
                 intersect: false,
