@@ -638,7 +638,12 @@ function filterOutliersByMovingAverage(dataPoints, field, windowSize = 5) {
 // Render or update a chart
 function renderChart(chartId, title, datasets, field) {
     const ctx = document.getElementById(chartId);
-    if (!ctx) return;
+    if (!ctx) {
+        console.error(`Canvas not found: ${chartId}`);
+        return;
+    }
+    
+    console.log(`Rendering ${chartId} for field ${field}, datasets: ${datasets.length}`);
     
     const chartDatasets = datasets.map(ds => {
         // First map all points
@@ -647,8 +652,12 @@ function renderChart(chartId, title, datasets, field) {
             y: row[field]
         }));
         
+        console.log(`  ${ds.deviceId}: ${allPoints.length} points, field values:`, allPoints.slice(0, 3).map(p => p.y));
+        
         // Apply both absolute and relative filtering
         const filteredPoints = filterOutliersByMovingAverage(allPoints, field);
+        
+        console.log(`  ${ds.deviceId}: ${filteredPoints.length} after filtering`);
         
         return {
             label: ds.deviceId,
