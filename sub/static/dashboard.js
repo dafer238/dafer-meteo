@@ -129,9 +129,9 @@ function updateDht22ToggleButton() {
     const icon = document.getElementById('dht22-toggle-icon');
     
     if (dht22Visible) {
-        btn.innerHTML = '<span id="dht22-toggle-icon">🙈</span> Hide DHT22';
+        btn.innerHTML = 'Hide DHT22';
     } else {
-        btn.innerHTML = '<span id="dht22-toggle-icon">👁️</span> Show DHT22';
+        btn.innerHTML = 'Show DHT22';
     }
 }
 
@@ -314,6 +314,8 @@ async function loadLatestData() {
                             <th class="dht22-data">DHT22 Humidity (%)</th>
                             <th>BMP280 Temp (°C)</th>
                             <th>BMP280 Pressure (Pa)</th>
+                            <th>Altitude (m)</th>
+                            <th>Free Heap (KB)</th>
                             <th>RSSI (dBm)</th>
                         </tr>
                     </thead>
@@ -326,6 +328,8 @@ async function loadLatestData() {
                                 <td class="dht22-data">${formatValue(row.dht22_humidity_percent, 1)}</td>
                                 <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                                 <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
+                                <td>${formatValue(row.altitude_m, 1)}</td>
+                                <td>${row.free_heap ? (row.free_heap / 1024).toFixed(1) : 'N/A'}</td>
                                 <td>${formatValue(row.rssi, 0)}</td>
                             </tr>
                         `).join('')}
@@ -371,6 +375,8 @@ async function updateLatestDataTable() {
                     <td class="dht22-data">${formatValue(row.dht22_humidity_percent, 1)}</td>
                     <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                     <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
+                    <td>${formatValue(row.altitude_m, 1)}</td>
+                    <td>${row.free_heap ? (row.free_heap / 1024).toFixed(1) : 'N/A'}</td>
                     <td>${formatValue(row.rssi, 0)}</td>
                 </tr>
             `).join('');
@@ -446,7 +452,12 @@ async function loadHistoricalData() {
         renderChart('temp-chart-bmp280', 'BMP280 Temperature (°C)', datasets, 'bmp280_temperature_c');
         renderChart('humidity-chart', 'Humidity (%)', datasets, 'dht22_humidity_percent');
         renderChart('pressure-chart', 'Pressure (Pa)', datasets, 'bmp280_pressure_pa');
+        renderChart('altitude-chart', 'Altitude (m)', datasets, 'altitude_m');
+        renderChart('heap-chart', 'Free Heap (bytes)', datasets, 'free_heap');
         renderChart('rssi-chart', 'RSSI (dBm)', datasets, 'rssi');
+        
+        // Render pressure trend chart (calculated from pressure data)
+        renderPressureTrendChart('pressure-trend-chart', datasets);
         
     } catch (error) {
         console.error('Error loading historical data:', error);
@@ -539,6 +550,8 @@ function getFieldForChart(chartId) {
         'temp-chart-bmp280': 'bmp280_temperature_c',
         'humidity-chart': 'dht22_humidity_percent',
         'pressure-chart': 'bmp280_pressure_pa',
+        'altitude-chart': 'altitude_m',
+        'heap-chart': 'free_heap',
         'rssi-chart': 'rssi'
     };
     return fieldMap[chartId];
@@ -746,6 +759,143 @@ function renderChart(chartId, title, datasets, field) {
     }
     
     // Create new chart
+    charts[chartId] = new Chart(ctx, config);
+}
+
+// Render pressure trend chart (calculates rate of change)
+function renderPressureTrendChart(chartId, datasets) {
+    const ctx = document.getElementById(chartId);
+    if (!ctx) return;
+    
+    // Calculate pressure trends for each device
+    const chartDatasets = datasets.map(({deviceId, color, rows}) => {
+        const trendData = [];
+        
+        // Calculate trend (Pa/hour) using 1-hour moving window
+        for (let i = 0; i < rows.length; i++) {
+            const currentRow = rows[i];
+            const currentTime = currentRow.timestamp_server;
+            const currentPressure = currentRow.bmp280_pressure_pa;
+            
+            if (!isValidDataPoint('bmp280_pressure_pa', currentPressure)) continue;
+            
+            // Find data point from 1 hour ago (±10 minutes tolerance)
+            let pastRow = null;
+            for (let j = i - 1; j >= 0; j--) {
+                const timeDiff = currentTime - rows[j].timestamp_server;
+                if (timeDiff >= 3000 && timeDiff <= 4200) { // 50-70 minutes
+                    pastRow = rows[j];
+                    break;
+                }
+            }
+            
+            if (pastRow && isValidDataPoint('bmp280_pressure_pa', pastRow.bmp280_pressure_pa)) {
+                const timeDiffHours = (currentTime - pastRow.timestamp_server) / 3600;
+                const pressureDiff = currentPressure - pastRow.bmp280_pressure_pa;
+                const trend = pressureDiff / timeDiffHours; // Pa/hour
+                
+                trendData.push({
+                    x: currentTime * 1000,
+                    y: trend
+                });
+            }
+        }
+        
+        return {
+            label: deviceId,
+            data: trendData,
+            borderColor: color,
+            backgroundColor: color + '33',
+            borderWidth: 2,
+            pointRadius: 1,
+            tension: 0.1
+        };
+    });
+    
+    const config = {
+        type: 'line',
+        data: { datasets: chartDatasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0',
+                        font: { family: 'Courier New, monospace', size: 11 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 14, 39, 0.9)',
+                    titleColor: '#00ff41',
+                    bodyColor: '#e0e0e0',
+                    borderColor: '#00ff41',
+                    borderWidth: 1,
+                    callbacks: {
+                        title: (items) => {
+                            if (items.length > 0) {
+                                const date = new Date(items[0].parsed.x);
+                                return date.toLocaleString('es-ES', {
+                                    timeZone: MADRID_TZ,
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                });
+                            }
+                            return '';
+                        },
+                        label: (context) => {
+                            const trend = context.parsed.y;
+                            const direction = trend > 0 ? '↑ Rising' : trend < 0 ? '↓ Falling' : '→ Stable';
+                            return `${context.dataset.label}: ${trend.toFixed(1)} Pa/h ${direction}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        displayFormats: { hour: 'HH:mm', minute: 'HH:mm' },
+                        tooltipFormat: 'PPpp'
+                    },
+                    adapters: {
+                        date: { locale: { code: 'es' } }
+                    },
+                    ticks: {
+                        color: '#8892b0',
+                        font: { family: 'Courier New, monospace', size: 10 }
+                    },
+                    grid: { color: '#1e2a4a' }
+                },
+                y: {
+                    title: { display: false },
+                    ticks: {
+                        color: '#8892b0',
+                        font: { family: 'Courier New, monospace', size: 10 },
+                        callback: function(value) {
+                            return value.toFixed(1) + ' Pa/h';
+                        }
+                    },
+                    grid: { color: '#1e2a4a' }
+                }
+            }
+        }
+    };
+    
+    if (charts[chartId]) {
+        charts[chartId].destroy();
+    }
     charts[chartId] = new Chart(ctx, config);
 }
 

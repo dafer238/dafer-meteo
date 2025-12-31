@@ -2,7 +2,9 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_sleep.h"
+#include "esp_system.h"
 #include "nvs_flash.h"
+#include <math.h>
 #include <stdio.h>
 #include <time.h>
 
@@ -52,8 +54,17 @@ void app_main(void) {
 
   int8_t rssi = wifi_get_rssi();
 
+  // Calculate altitude from pressure (standard barometric formula)
+  // Using sea level pressure of 101325 Pa
+  float altitude_m = 44330.0 * (1.0 - pow(bmp_press / 101325.0, 1/5.225));
+  
+  // Get free heap memory in bytes
+  uint32_t free_heap = esp_get_free_heap_size();
+  
+  ESP_LOGI(TAG, "Altitude: %.1f m, Free heap: %lu bytes", altitude_m, free_heap);
+
   mqtt_publish_measurement(CONFIG_NODE_NAME, CONFIG_FW_VERSION, dht_temp, dht_rh, bmp_temp,
-                           bmp_press, rssi);
+                           bmp_press, rssi, altitude_m, free_heap);
 
   // Quick success blinks
   led_blink_success(3);

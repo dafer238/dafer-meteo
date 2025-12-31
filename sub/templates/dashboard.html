@@ -41,7 +41,7 @@
           </div>
           <button id="refresh-btn" class="btn-primary">Refresh Data</button>
           <button id="toggle-dht22-btn" class="btn-secondary" title="Show/Hide DHT22 data (unreliable sensor)">
-            <span id="dht22-toggle-icon">👁️</span> Show DHT22
+            Show DHT22
           </button>
         </div>
       </section>
@@ -63,19 +63,34 @@
             <canvas id="temp-chart-dht22"></canvas>
           </div>
 
-          <div class="chart-container">
-            <h3>Temperature (BMP280)</h3>
-            <canvas id="temp-chart-bmp280"></canvas>
-          </div>
-
           <div class="chart-container dht22-data">
             <h3>Humidity (DHT22) <span class="unreliable-badge">⚠️ Unreliable</span></h3>
             <canvas id="humidity-chart"></canvas>
           </div>
 
           <div class="chart-container">
+            <h3>Temperature (BMP280)</h3>
+            <canvas id="temp-chart-bmp280"></canvas>
+          </div>
+
+          <div class="chart-container">
             <h3>Pressure (BMP280)</h3>
             <canvas id="pressure-chart"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3>Calculated Altitude</h3>
+            <canvas id="altitude-chart"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3>Pressure Trend</h3>
+            <canvas id="pressure-trend-chart"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3>Free Heap Memory</h3>
+            <canvas id="heap-chart"></canvas>
           </div>
 
           <div class="chart-container">

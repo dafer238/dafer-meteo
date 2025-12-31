@@ -57,7 +57,9 @@ def init_db(conn: sqlite3.Connection) -> None:
             timestamp_server INTEGER NOT NULL,
 
             firmware_version TEXT,
-            rssi INTEGER
+            rssi INTEGER,
+            altitude_m REAL,
+            free_heap INTEGER
         )
     """)
 
@@ -110,6 +112,8 @@ def on_message(client, userdata, msg):
     firmware = payload.get("fw")
     ts_device = payload.get("ts_device")
     rssi = payload.get("rssi")
+    altitude_m = payload.get("altitude_m")
+    free_heap = payload.get("free_heap")
 
     dht22_temp = safe_get(payload, "dht22", "temperature_c")
     dht22_rh = safe_get(payload, "dht22", "humidity_percent")
@@ -131,8 +135,10 @@ def on_message(client, userdata, msg):
                 timestamp_device,
                 timestamp_server,
                 firmware_version,
-                rssi
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                rssi,
+                altitude_m,
+                free_heap
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 device_id,
@@ -145,6 +151,8 @@ def on_message(client, userdata, msg):
                 now,
                 firmware,
                 rssi,
+                altitude_m,
+                free_heap,
             ),
         )
         conn.commit()
