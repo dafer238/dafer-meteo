@@ -277,8 +277,7 @@ async function loadDeviceStatus() {
                     </div>
                     <div class="device-info">
                         <div><strong>Last Seen:</strong> <span class="last-seen-text">${lastSeenText}</span></div>
-                        <div><strong>Messages:</strong> <span class="message-count">${device.message_count}</span> (last 5 min)</div>
-                        <div><strong>Firmware:</strong> <span class="firmware-version">${device.firmware_version || 'N/A'}</span></div>
+                        <div><strong>Connections:</strong> <span class="message-count">${device.message_count}</span> (last 5 min)</div>
                         <div><strong>RSSI:</strong> <span class="rssi-value">${device.rssi || 'N/A'}</span> dBm</div>
                     </div>
                 </div>
@@ -571,6 +570,8 @@ function isValidDataPoint(field, value) {
         'bmp280_temperature_c': { min: -10, max: 50 },
         'dht22_humidity_percent': { min: 0, max: 100 },
         'bmp280_pressure_pa': { min: 80000, max: 110000 },
+        'altitude_m': { min: -500, max: 5000 },
+        'free_heap': { min: 0, max: 400000 },
         'rssi': { min: -100, max: 0 }
     };
     
@@ -590,6 +591,8 @@ function filterOutliersByMovingAverage(dataPoints, field, windowSize = 5) {
         'bmp280_temperature_c': 5,     // ±5°C from moving average
         'dht22_humidity_percent': 15,   // ±15% from moving average
         'bmp280_pressure_pa': 2000,    // ±2000 Pa from moving average
+        'altitude_m': 200,              // ±200m from moving average
+        'free_heap': 50000,             // ±50KB from moving average
         'rssi': 20                      // ±20 dBm from moving average
     };
     
