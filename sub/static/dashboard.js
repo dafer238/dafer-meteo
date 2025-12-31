@@ -832,18 +832,19 @@ function renderPressureTrendChart(chartId, datasets) {
             label: deviceId,
             data: trendData,
             borderColor: color,
-            backgroundColor: color + '33',
-            borderWidth: 2,
-            pointRadius: 1,
-            tension: 0.1,
+            backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+            tension: 0.4,
             fill: true,
+            pointRadius: 2,
+            pointHoverRadius: 4,
             segment: {
                 backgroundColor: (ctx) => {
                     // Color area green if rising (positive), red if falling (negative)
                     const y = ctx.p1.parsed.y;
                     return y >= 0 ? 'rgba(0, 255, 65, 0.2)' : 'rgba(255, 65, 0, 0.2)';
                 }
-            }
+            },
+            spanGaps: true
         };
     });
     
@@ -951,11 +952,12 @@ function renderHeapChart(chartId, datasets) {
             label: deviceId,
             data: heapData,
             borderColor: color,
-            backgroundColor: color + '33',
-            borderWidth: 2,
-            pointRadius: 1,
-            tension: 0.1,
-            fill: false
+            backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.1)'),
+            tension: 0.4,
+            fill: true,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            spanGaps: true
         };
     });
     
