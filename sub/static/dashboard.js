@@ -1011,9 +1011,6 @@ function renderHeapChart(chartId, datasets) {
                         displayFormats: { hour: 'HH:mm', minute: 'HH:mm' },
                         tooltipFormat: 'PPpp'
                     },
-                    adapters: {
-                        date: { locale: { code: 'es' } }
-                    },
                     ticks: {
                         color: '#8892b0',
                         font: { family: 'Courier New, monospace', size: 10 }
