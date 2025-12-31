@@ -7,15 +7,25 @@ let selectedTimeRange = 24;
 let refreshTimer = null;
 let lastSeenTimer = null;
 let deviceStatusCache = {}; // Cache device status for client-side updates
+let dht22Visible = false; // DHT22 data hidden by default
 
 // Initialize dashboard
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard initializing...');
     
+    // Load DHT22 visibility preference from localStorage
+    const savedVisibility = localStorage.getItem('dht22Visible');
+    if (savedVisibility === 'true') {
+        dht22Visible = true;
+        document.body.classList.add('dht22-visible');
+    }
+    updateDht22ToggleButton();
+    
     // Setup event listeners
     document.getElementById('device-filter').addEventListener('change', handleDeviceFilterChange);
     document.getElementById('time-range').addEventListener('change', handleTimeRangeChange);
     document.getElementById('refresh-btn').addEventListener('click', refreshAllData);
+    document.getElementById('toggle-dht22-btn').addEventListener('click', toggleDht22Visibility);
     document.getElementById('query-preset').addEventListener('change', handleQueryPresetChange);
     document.getElementById('query-run-btn').addEventListener('click', runQuery);
     
@@ -85,6 +95,35 @@ function handleDeviceFilterChange(e) {
 function handleTimeRangeChange(e) {
     selectedTimeRange = parseInt(e.target.value);
     loadHistoricalData();
+}
+
+// Toggle DHT22 data visibility
+function toggleDht22Visibility() {
+    dht22Visible = !dht22Visible;
+    
+    if (dht22Visible) {
+        document.body.classList.add('dht22-visible');
+    } else {
+        document.body.classList.remove('dht22-visible');
+    }
+    
+    // Save preference to localStorage
+    localStorage.setItem('dht22Visible', dht22Visible.toString());
+    
+    updateDht22ToggleButton();
+    console.log('DHT22 visibility toggled:', dht22Visible);
+}
+
+// Update toggle button text and icon
+function updateDht22ToggleButton() {
+    const btn = document.getElementById('toggle-dht22-btn');
+    const icon = document.getElementById('dht22-toggle-icon');
+    
+    if (dht22Visible) {
+        btn.innerHTML = '<span id="dht22-toggle-icon">🙈</span> Hide DHT22';
+    } else {
+        btn.innerHTML = '<span id="dht22-toggle-icon">👁️</span> Show DHT22';
+    }
 }
 
 // Refresh all data (initial load and manual refresh)
@@ -262,8 +301,8 @@ async function loadLatestData() {
                         <tr>
                             <th>Device</th>
                             <th>Time</th>
-                            <th>DHT22 Temp (°C)</th>
-                            <th>DHT22 Humidity (%)</th>
+                            <th class="dht22-data">DHT22 Temp (°C)</th>
+                            <th class="dht22-data">DHT22 Humidity (%)</th>
                             <th>BMP280 Temp (°C)</th>
                             <th>BMP280 Pressure (Pa)</th>
                             <th>RSSI (dBm)</th>
@@ -274,8 +313,8 @@ async function loadLatestData() {
                             <tr data-timestamp="${row.timestamp_server}">
                                 <td>${row.device_id}</td>
                                 <td>${formatTimestamp(row.timestamp_server)}</td>
-                                <td>${formatValue(row.dht22_temperature_c, 1)}</td>
-                                <td>${formatValue(row.dht22_humidity_percent, 1)}</td>
+                                <td class="dht22-data">${formatValue(row.dht22_temperature_c, 1)}</td>
+                                <td class="dht22-data">${formatValue(row.dht22_humidity_percent, 1)}</td>
                                 <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                                 <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
                                 <td>${formatValue(row.rssi, 0)}</td>
@@ -319,8 +358,8 @@ async function updateLatestDataTable() {
                 <tr data-timestamp="${row.timestamp_server}">
                     <td>${row.device_id}</td>
                     <td>${formatTimestamp(row.timestamp_server)}</td>
-                    <td>${formatValue(row.dht22_temperature_c, 1)}</td>
-                    <td>${formatValue(row.dht22_humidity_percent, 1)}</td>
+                    <td class="dht22-data">${formatValue(row.dht22_temperature_c, 1)}</td>
+                    <td class="dht22-data">${formatValue(row.dht22_humidity_percent, 1)}</td>
                     <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                     <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
                     <td>${formatValue(row.rssi, 0)}</td>

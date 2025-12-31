@@ -40,6 +40,9 @@
             </select>
           </div>
           <button id="refresh-btn" class="btn-primary">Refresh Data</button>
+          <button id="toggle-dht22-btn" class="btn-secondary" title="Show/Hide DHT22 data (unreliable sensor)">
+            <span id="dht22-toggle-icon">👁️</span> Show DHT22
+          </button>
         </div>
       </section>
 
@@ -55,8 +58,8 @@
       <section class="charts-section">
         <h2>Historical Data</h2>
         <div class="charts-grid">
-          <div class="chart-container">
-            <h3>Temperature (DHT22)</h3>
+          <div class="chart-container dht22-data">
+            <h3>Temperature (DHT22) <span class="unreliable-badge">⚠️ Unreliable</span></h3>
             <canvas id="temp-chart-dht22"></canvas>
           </div>
 
@@ -65,8 +68,8 @@
             <canvas id="temp-chart-bmp280"></canvas>
           </div>
 
-          <div class="chart-container">
-            <h3>Humidity (DHT22)</h3>
+          <div class="chart-container dht22-data">
+            <h3>Humidity (DHT22) <span class="unreliable-badge">⚠️ Unreliable</span></h3>
             <canvas id="humidity-chart"></canvas>
           </div>
 
