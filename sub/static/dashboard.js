@@ -314,13 +314,13 @@ async function loadLatestData() {
                             <th>BMP280 Temp (°C)</th>
                             <th>BMP280 Press (Pa)</th>
                             <th>Altitude (m)</th>
-                            <th>Free Heap (%)</th>
+                            <th>Used Heap (%)</th>
                             <th>RSSI (dBm)</th>
                         </tr>
                     </thead>
                     <tbody id="latest-data-tbody">
                         ${data.data.map(row => {
-                            const heapPercent = row.free_heap ? ((row.free_heap / 327680) * 100).toFixed(1) : null;
+                            const heapPercent = row.free_heap ? (((327680 - row.free_heap) / 327680) * 100).toFixed(1) : null;
                             return `
                             <tr data-timestamp="${row.timestamp_server}">
                                 <td>${row.device_id}</td>
@@ -330,7 +330,7 @@ async function loadLatestData() {
                                 <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                                 <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
                                 <td>${formatValue(row.altitude_m, 1)}</td>
-                                <td>${heapPercent ? heapPercent + '% (' + (row.free_heap / 1024).toFixed(0) + 'KB)' : 'N/A'}</td>
+                                <td>${heapPercent ? heapPercent + '% (' + ((327680 - row.free_heap) / 1024).toFixed(0) + 'KB)' : 'N/A'}</td>
                                 <td>${formatValue(row.rssi, 0)}</td>
                             </tr>`;
                         }).join('')}
@@ -369,7 +369,7 @@ async function updateLatestDataTable() {
         if (newData.length > 0) {
             // Prepend new rows
             const newRows = newData.map(row => {
-                const heapPercent = row.free_heap ? ((row.free_heap / 327680) * 100).toFixed(1) : null;
+                const heapPercent = row.free_heap ? (((327680 - row.free_heap) / 327680) * 100).toFixed(1) : null;
                 return `
                 <tr data-timestamp="${row.timestamp_server}">
                     <td>${row.device_id}</td>
@@ -379,7 +379,7 @@ async function updateLatestDataTable() {
                     <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                     <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
                     <td>${formatValue(row.altitude_m, 1)}</td>
-                    <td>${heapPercent ? heapPercent + '% (' + (row.free_heap / 1024).toFixed(0) + 'KB)' : 'N/A'}</td>
+                    <td>${heapPercent ? heapPercent + '% (' + ((327680 - row.free_heap) / 1024).toFixed(0) + 'KB)' : 'N/A'}</td>
                     <td>${formatValue(row.rssi, 0)}</td>
                 </tr>`;
             }).join('');
@@ -835,7 +835,15 @@ function renderPressureTrendChart(chartId, datasets) {
             backgroundColor: color + '33',
             borderWidth: 2,
             pointRadius: 1,
-            tension: 0.1
+            tension: 0.1,
+            fill: true,
+            segment: {
+                backgroundColor: (ctx) => {
+                    // Color area green if rising (positive), red if falling (negative)
+                    const y = ctx.p1.parsed.y;
+                    return y >= 0 ? 'rgba(0, 255, 65, 0.2)' : 'rgba(255, 65, 0, 0.2)';
+                }
+            }
         };
     });
     
@@ -928,7 +936,7 @@ function renderHeapChart(chartId, datasets) {
     const ctx = document.getElementById(chartId);
     if (!ctx) return;
     
-    // Convert heap bytes to percentage (ESP32 total heap ~320KB = 327680 bytes)
+    // Convert heap bytes to percentage (ESP32 WROOM-32 total heap ~320KB = 327680 bytes)
     const ESP32_TOTAL_HEAP = 327680;
     
     const chartDatasets = datasets.map(({deviceId, color, rows}) => {
@@ -936,7 +944,7 @@ function renderHeapChart(chartId, datasets) {
             .filter(row => isValidDataPoint('free_heap', row.free_heap))
             .map(row => ({
                 x: row.timestamp_server * 1000,
-                y: (row.free_heap / ESP32_TOTAL_HEAP) * 100  // Convert to percentage
+                y: ((ESP32_TOTAL_HEAP - row.free_heap) / ESP32_TOTAL_HEAP) * 100  // Used heap percentage
             }));
         
         return {
@@ -947,7 +955,7 @@ function renderHeapChart(chartId, datasets) {
             borderWidth: 2,
             pointRadius: 1,
             tension: 0.1,
-            fill: true
+            fill: false
         };
     });
     
@@ -996,7 +1004,7 @@ function renderHeapChart(chartId, datasets) {
                         label: (context) => {
                             const percent = context.parsed.y;
                             const bytes = (percent / 100) * ESP32_TOTAL_HEAP;
-                            return `${context.dataset.label}: ${percent.toFixed(1)}% (${(bytes/1024).toFixed(0)}KB free)`;
+                            return `${context.dataset.label}: ${percent.toFixed(1)}% (${(bytes/1024).toFixed(0)}KB used)`;
                         }
                     }
                 }
