@@ -902,8 +902,18 @@ function renderPressureTrendChart(chartId, datasets) {
                 x: {
                     type: 'time',
                     time: {
-                        displayFormats: { hour: 'HH:mm', minute: 'HH:mm' },
-                        tooltipFormat: 'PPpp'
+                        unit: selectedTimeRange <= 6 ? 'minute' : selectedTimeRange <= 48 ? 'hour' : 'day',
+                        displayFormats: {
+                            minute: 'HH:mm',
+                            hour: 'dd/MM HH:mm',
+                            day: 'dd/MM'
+                        },
+                        tooltipFormat: 'dd/MM/yyyy HH:mm:ss'
+                    },
+                    adapters: {
+                        date: {
+                            zone: MADRID_TZ
+                        }
                     },
                     ticks: {
                         color: '#8892b0',
@@ -1015,8 +1025,18 @@ function renderHeapChart(chartId, datasets) {
                 x: {
                     type: 'time',
                     time: {
-                        displayFormats: { hour: 'HH:mm', minute: 'HH:mm' },
-                        tooltipFormat: 'PPpp'
+                        unit: selectedTimeRange <= 6 ? 'minute' : selectedTimeRange <= 48 ? 'hour' : 'day',
+                        displayFormats: {
+                            minute: 'HH:mm',
+                            hour: 'dd/MM HH:mm',
+                            day: 'dd/MM'
+                        },
+                        tooltipFormat: 'dd/MM/yyyy HH:mm:ss'
+                    },
+                    adapters: {
+                        date: {
+                            zone: MADRID_TZ
+                        }
                     },
                     ticks: {
                         color: '#8892b0',
