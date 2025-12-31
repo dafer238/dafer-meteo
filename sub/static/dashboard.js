@@ -311,16 +311,18 @@ async function loadLatestData() {
                             <th>Device</th>
                             <th>Time</th>
                             <th class="dht22-data">DHT22 Temp (°C)</th>
-                            <th class="dht22-data">DHT22 Humidity (%)</th>
+                            <th class="dht22-data">DHT22 RH (%)</th>
                             <th>BMP280 Temp (°C)</th>
-                            <th>BMP280 Pressure (Pa)</th>
+                            <th>BMP280 Press (Pa)</th>
                             <th>Altitude (m)</th>
-                            <th>Free Heap (KB)</th>
+                            <th>Free Heap (%)</th>
                             <th>RSSI (dBm)</th>
                         </tr>
                     </thead>
                     <tbody id="latest-data-tbody">
-                        ${data.data.map(row => `
+                        ${data.data.map(row => {
+                            const heapPercent = row.free_heap ? ((row.free_heap / 327680) * 100).toFixed(1) : null;
+                            return `
                             <tr data-timestamp="${row.timestamp_server}">
                                 <td>${row.device_id}</td>
                                 <td>${formatTimestamp(row.timestamp_server)}</td>
@@ -329,10 +331,10 @@ async function loadLatestData() {
                                 <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                                 <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
                                 <td>${formatValue(row.altitude_m, 1)}</td>
-                                <td>${row.free_heap ? (row.free_heap / 1024).toFixed(1) : 'N/A'}</td>
+                                <td>${heapPercent ? heapPercent + '% (' + (row.free_heap / 1024).toFixed(0) + 'KB)' : 'N/A'}</td>
                                 <td>${formatValue(row.rssi, 0)}</td>
-                            </tr>
-                        `).join('')}
+                            </tr>`;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -367,7 +369,9 @@ async function updateLatestDataTable() {
         
         if (newData.length > 0) {
             // Prepend new rows
-            const newRows = newData.map(row => `
+            const newRows = newData.map(row => {
+                const heapPercent = row.free_heap ? ((row.free_heap / 327680) * 100).toFixed(1) : null;
+                return `
                 <tr data-timestamp="${row.timestamp_server}">
                     <td>${row.device_id}</td>
                     <td>${formatTimestamp(row.timestamp_server)}</td>
@@ -376,10 +380,10 @@ async function updateLatestDataTable() {
                     <td>${formatValue(row.bmp280_temperature_c, 1)}</td>
                     <td>${formatValue(row.bmp280_pressure_pa, 0)}</td>
                     <td>${formatValue(row.altitude_m, 1)}</td>
-                    <td>${row.free_heap ? (row.free_heap / 1024).toFixed(1) : 'N/A'}</td>
+                    <td>${heapPercent ? heapPercent + '% (' + (row.free_heap / 1024).toFixed(0) + 'KB)' : 'N/A'}</td>
                     <td>${formatValue(row.rssi, 0)}</td>
-                </tr>
-            `).join('');
+                </tr>`;
+            }).join('');
             
             tbody.insertAdjacentHTML('afterbegin', newRows);
             
@@ -453,7 +457,7 @@ async function loadHistoricalData() {
         renderChart('humidity-chart', 'Humidity (%)', datasets, 'dht22_humidity_percent');
         renderChart('pressure-chart', 'Pressure (Pa)', datasets, 'bmp280_pressure_pa');
         renderChart('altitude-chart', 'Altitude (m)', datasets, 'altitude_m');
-        renderChart('heap-chart', 'Free Heap (bytes)', datasets, 'free_heap');
+        renderHeapChart('heap-chart', datasets);
         renderChart('rssi-chart', 'RSSI (dBm)', datasets, 'rssi');
         
         // Render pressure trend chart (calculated from pressure data)
@@ -771,7 +775,7 @@ function renderPressureTrendChart(chartId, datasets) {
     const chartDatasets = datasets.map(({deviceId, color, rows}) => {
         const trendData = [];
         
-        // Calculate trend (Pa/hour) using 1-hour moving window
+        // Calculate trend using variable time windows (prefer 1 hour, accept 15min-2hour)
         for (let i = 0; i < rows.length; i++) {
             const currentRow = rows[i];
             const currentTime = currentRow.timestamp_server;
@@ -779,13 +783,21 @@ function renderPressureTrendChart(chartId, datasets) {
             
             if (!isValidDataPoint('bmp280_pressure_pa', currentPressure)) continue;
             
-            // Find data point from 1 hour ago (±10 minutes tolerance)
+            // Find best historical data point (prefer ~1 hour, accept 15min - 2 hours)
             let pastRow = null;
+            let bestTimeDiff = Infinity;
+            
             for (let j = i - 1; j >= 0; j--) {
                 const timeDiff = currentTime - rows[j].timestamp_server;
-                if (timeDiff >= 3000 && timeDiff <= 4200) { // 50-70 minutes
-                    pastRow = rows[j];
-                    break;
+                
+                // Only consider data between 15 minutes and 2 hours ago
+                if (timeDiff >= 900 && timeDiff <= 7200) {
+                    // Prefer data closest to 1 hour (3600 seconds)
+                    const diffFrom1Hour = Math.abs(timeDiff - 3600);
+                    if (diffFrom1Hour < bestTimeDiff) {
+                        bestTimeDiff = diffFrom1Hour;
+                        pastRow = rows[j];
+                    }
                 }
             }
             
@@ -885,6 +897,123 @@ function renderPressureTrendChart(chartId, datasets) {
                         font: { family: 'Courier New, monospace', size: 10 },
                         callback: function(value) {
                             return value.toFixed(1) + ' Pa/h';
+                        }
+                    },
+                    grid: { color: '#1e2a4a' }
+                }
+            }
+        }
+    };
+    
+    if (charts[chartId]) {
+        charts[chartId].destroy();
+    }
+    charts[chartId] = new Chart(ctx, config);
+}
+
+// Render heap memory chart as percentage
+function renderHeapChart(chartId, datasets) {
+    const ctx = document.getElementById(chartId);
+    if (!ctx) return;
+    
+    // Convert heap bytes to percentage (ESP32 total heap ~320KB = 327680 bytes)
+    const ESP32_TOTAL_HEAP = 327680;
+    
+    const chartDatasets = datasets.map(({deviceId, color, rows}) => {
+        const heapData = rows
+            .filter(row => isValidDataPoint('free_heap', row.free_heap))
+            .map(row => ({
+                x: row.timestamp_server * 1000,
+                y: (row.free_heap / ESP32_TOTAL_HEAP) * 100  // Convert to percentage
+            }));
+        
+        return {
+            label: deviceId,
+            data: heapData,
+            borderColor: color,
+            backgroundColor: color + '33',
+            borderWidth: 2,
+            pointRadius: 1,
+            tension: 0.1,
+            fill: true
+        };
+    });
+    
+    const config = {
+        type: 'line',
+        data: { datasets: chartDatasets },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0',
+                        font: { family: 'Courier New, monospace', size: 11 }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 14, 39, 0.9)',
+                    titleColor: '#00ff41',
+                    bodyColor: '#e0e0e0',
+                    borderColor: '#00ff41',
+                    borderWidth: 1,
+                    callbacks: {
+                        title: (items) => {
+                            if (items.length > 0) {
+                                const date = new Date(items[0].parsed.x);
+                                return date.toLocaleString('es-ES', {
+                                    timeZone: MADRID_TZ,
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                });
+                            }
+                            return '';
+                        },
+                        label: (context) => {
+                            const percent = context.parsed.y;
+                            const bytes = (percent / 100) * ESP32_TOTAL_HEAP;
+                            return `${context.dataset.label}: ${percent.toFixed(1)}% (${(bytes/1024).toFixed(0)}KB free)`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        displayFormats: { hour: 'HH:mm', minute: 'HH:mm' },
+                        tooltipFormat: 'PPpp'
+                    },
+                    adapters: {
+                        date: { locale: { code: 'es' } }
+                    },
+                    ticks: {
+                        color: '#8892b0',
+                        font: { family: 'Courier New, monospace', size: 10 }
+                    },
+                    grid: { color: '#1e2a4a' }
+                },
+                y: {
+                    title: { display: false },
+                    min: 0,
+                    max: 100,
+                    ticks: {
+                        color: '#8892b0',
+                        font: { family: 'Courier New, monospace', size: 10 },
+                        callback: function(value) {
+                            return value + '%';
                         }
                     },
                     grid: { color: '#1e2a4a' }
